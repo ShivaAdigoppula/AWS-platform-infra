@@ -1,0 +1,14 @@
+# Terraform working files - NEVER commit these
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+crash.log
+override.tf
+override.tf.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
