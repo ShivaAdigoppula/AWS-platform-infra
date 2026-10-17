@@ -5,3 +5,11 @@ output "vpc_id" {
 output "private_subnet_ids" {
   value = module.vpc.private_subnet_ids
 }
+
+output "cluster_name" {
+  value = module.eks.cluster_name
+}
+
+output "configure_kubectl" {
+  value = "aws eks update-kubeconfig --region eu-central-1 --name ${module.eks.cluster_name}"
+}
