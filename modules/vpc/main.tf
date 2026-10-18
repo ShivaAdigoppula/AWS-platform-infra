@@ -1,6 +1,6 @@
 locals {
   az_count  = length(var.azs)
-  nat_count = var.single_nat_gateway ? 1 : local.az_count
+  nat_count = var.enable_nat_gateway ? (var.single_nat_gateway ? 1 : local.az_count) : 0
 }
 
 # ---------- The network itself ----------
@@ -83,9 +83,13 @@ resource "aws_route_table" "private" {
   count  = local.az_count
   vpc_id = aws_vpc.this.id
 
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.this[var.single_nat_gateway ? 0 : count.index].id
+  # Only add the "internet via NAT" route if NAT exists
+  dynamic "route" {
+    for_each = var.enable_nat_gateway ? [1] : []
+    content {
+      cidr_block     = "0.0.0.0/0"
+      nat_gateway_id = aws_nat_gateway.this[var.single_nat_gateway ? 0 : count.index].id
+    }
   }
 
   tags = { Name = "${var.name}-private-rt-${var.azs[count.index]}" }
