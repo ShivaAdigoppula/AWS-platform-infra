@@ -18,3 +18,8 @@ variable "single_nat_gateway" {
   type        = bool
   default     = true
 }
+variable "enable_nat_gateway" {
+  description = "false = no NAT at all (private subnets get no internet route)"
+  type        = bool
+  default     = true # default true -> existing envs behave exactly as before
+}
