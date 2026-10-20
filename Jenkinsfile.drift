@@ -1,0 +1,82 @@
+// Nightly drift detection: does real AWS still match the code in main?
+// Exit codes of "terraform plan -detailed-exitcode": 0 = no drift, 1 = error, 2 = drift
+
+def ENVS = ['envs/dev', 'envs/stage', 'envs/prod']
+def REPO = 'ShivaAdigoppula/aws-platform-infra'
+
+pipeline {
+    agent any
+
+    triggers {
+        cron('''TZ=Europe/Berlin
+H 7 * * *''')                                  // every morning around 07:xx Berlin time
+    }
+
+    options {
+        disableConcurrentBuilds()
+        timestamps()
+    }
+
+    environment {
+        TF_IN_AUTOMATION    = 'true'
+        TF_INPUT            = '0'
+        AWS_REGION          = 'eu-central-1'
+        TF_PLUGIN_CACHE_DIR = '/var/lib/jenkins/.terraform.d/plugin-cache'
+    }
+
+    stages {
+        stage('Detect drift') {
+            steps {
+                sh 'mkdir -p "$TF_PLUGIN_CACHE_DIR"'
+                script {
+                    def drifted = []
+                    for (e in ENVS) {
+                        def name = e.replace('/', '-')
+                        sh "terraform -chdir=${e} init -input=false -no-color"
+
+                        // Skip environments that are not deployed (empty state = nothing to compare)
+                        def count = sh(script: "terraform -chdir=${e} state list | wc -l", returnStdout: true).trim()
+                        if (count == '0') {
+                            echo "${e}: not deployed - skipped"
+                        } else {
+                            def rc = sh(script: "terraform -chdir=${e} plan -detailed-exitcode -lock-timeout=5m -no-color > drift-${name}.txt",
+                                        returnStatus: true)
+                            if (rc == 0) {
+                                echo "${e}: no drift"
+                            } else if (rc == 2) {
+                                echo "${e}: DRIFT DETECTED"
+                                drifted.add(e)
+                            } else {
+                                error("${e}: plan failed (exit code ${rc}) - see drift-${name}.txt")
+                            }
+                        }
+                    }
+                    env.DRIFTED = drifted.join(', ')
+                }
+            }
+        }
+
+        stage('Alert') {
+            when { expression { env.DRIFTED?.trim() } }      // only if something drifted
+            steps {
+                script { currentBuild.result = 'UNSTABLE' }   // yellow build
+                writeFile file: 'issue.json', text: """{"title": "Drift detected: ${env.DRIFTED}", "body": "The nightly drift check found differences between main and real AWS in: ${env.DRIFTED}. Plan output: ${env.BUILD_URL}artifact/"}"""
+                withCredentials([usernamePassword(credentialsId: 'github-token',
+                                                  usernameVariable: 'GH_USER',
+                                                  passwordVariable: 'GH_TOKEN')]) {
+                    sh '''curl -sf -X POST \
+                        -H "Authorization: Bearer $GH_TOKEN" \
+                        -H "Accept: application/vnd.github+json" \
+                        https://api.github.com/repos/''' + REPO + '''/issues \
+                        --data @issue.json'''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'drift-*.txt', allowEmptyArchive: true
+        }
+    }
+}

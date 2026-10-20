@@ -1,0 +1,40 @@
+// Destroys the DEV environment every evening to save money.
+// Hard-coded to envs/dev: it can never touch stage or prod.
+
+pipeline {
+    agent any
+
+    triggers {
+        cron('''TZ=Europe/Berlin
+H 21 * * *''')                                 // every evening around 21:xx Berlin time
+    }
+
+    options {
+        disableConcurrentBuilds()
+        timestamps()
+    }
+
+    environment {
+        TF_IN_AUTOMATION    = 'true'
+        TF_INPUT            = '0'
+        AWS_REGION          = 'eu-central-1'
+        TF_PLUGIN_CACHE_DIR = '/var/lib/jenkins/.terraform.d/plugin-cache'
+    }
+
+    stages {
+        stage('Destroy dev') {
+            steps {
+                sh 'mkdir -p "$TF_PLUGIN_CACHE_DIR"'
+                sh 'terraform -chdir=envs/dev init -input=false -no-color'
+                script {
+                    def count = sh(script: 'terraform -chdir=envs/dev state list | wc -l', returnStdout: true).trim()
+                    if (count == '0') {
+                        echo 'dev is already destroyed - nothing to do.'
+                    } else {
+                        sh 'terraform -chdir=envs/dev destroy -auto-approve -lock-timeout=5m -no-color'
+                    }
+                }
+            }
+        }
+    }
+}
