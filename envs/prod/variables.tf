@@ -38,3 +38,12 @@ variable "node_min_size" {
 variable "node_max_size" {
   type = number
 }
+variable "cluster_admin_arns" {
+  description = "IAM principals that are Kubernetes cluster-admins (you + Jenkins)"
+  type        = list(string)
+}
+
+variable "argocd_chart_version" {
+  description = "argo-cd Helm chart version for this environment"
+  type        = string
+}

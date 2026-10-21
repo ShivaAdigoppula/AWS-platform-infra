@@ -12,7 +12,7 @@ resource "aws_eks_cluster" "this" {
 
   access_config {
     authentication_mode                         = "API"
-    bootstrap_cluster_creator_admin_permissions = true
+    bootstrap_cluster_creator_admin_permissions = false # admins are now listed explicitly below
   }
 
   upgrade_policy {
@@ -43,4 +43,27 @@ resource "aws_eks_node_group" "this" {
   lifecycle {
     ignore_changes = [scaling_config[0].desired_size]
   }
+}
+# ---------- Who may use kubectl / Helm on this cluster ----------
+# Step 1: register each IAM identity with the cluster
+resource "aws_eks_access_entry" "admins" {
+  for_each = toset(var.admin_principal_arns)
+
+  cluster_name  = aws_eks_cluster.this.name
+  principal_arn = each.value
+}
+
+# Step 2: give each registered identity Kubernetes cluster-admin rights
+resource "aws_eks_access_policy_association" "admins" {
+  for_each = toset(var.admin_principal_arns)
+
+  cluster_name  = aws_eks_cluster.this.name
+  principal_arn = each.value
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster" # the whole cluster, not just some namespaces
+  }
+
+  depends_on = [aws_eks_access_entry.admins]
 }

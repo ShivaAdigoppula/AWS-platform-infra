@@ -1,0 +1,4 @@
+apiVersion: v2
+name: argocd-root-app
+description: Creates the Argo CD root Application (app of apps)
+version: 0.1.0

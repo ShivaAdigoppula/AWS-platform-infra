@@ -54,3 +54,7 @@ variable "node_max_size" {
   type    = number
   default = 3
 }
+variable "admin_principal_arns" {
+  description = "IAM roles/users that get cluster-admin inside Kubernetes (e.g. your SSO role, jenkins-role)"
+  type        = list(string)
+}
