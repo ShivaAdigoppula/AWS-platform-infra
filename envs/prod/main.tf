@@ -39,10 +39,20 @@ module "eks" {
   cluster_role_arn = module.eks_cluster_role.role_arn
   node_role_arn    = module.eks_node_role.role_arn
 
-  node_instance_types = var.node_instance_types
-  node_desired_size   = var.node_desired_size
-  node_min_size       = var.node_min_size
-  node_max_size       = var.node_max_size
+  node_instance_types  = var.node_instance_types
+  node_desired_size    = var.node_desired_size
+  node_min_size        = var.node_min_size
+  node_max_size        = var.node_max_size
+  admin_principal_arns = var.cluster_admin_arns
+  depends_on           = [module.eks_cluster_role, module.eks_node_role]
+}
+module "argocd" {
+  source = "../../modules/argocd"
 
-  depends_on = [module.eks_cluster_role, module.eks_node_role]
+  chart_version   = var.argocd_chart_version
+  gitops_repo_url = "https://github.com/ShivaAdigoppula/aws-platform-gitops.git"
+  apps_path       = "apps/${var.environment}" # dev -> apps/dev, prod -> apps/prod
+
+  # Needs the cluster, the nodes (pods must run somewhere) AND the access entries (to log in)
+  depends_on = [module.eks]
 }
