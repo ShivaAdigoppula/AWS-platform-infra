@@ -34,7 +34,7 @@ pipeline {
                 sh 'mkdir -p "$TF_PLUGIN_CACHE_DIR"'
                 script {
                     for (e in ENVS) {
-                        sh "terraform -chdir=envs/${e} init -input=false -no-color"
+                        sh "terraform -chdir=envs/${e} init -input=false -reconfigure -no-color"
                         sh "terraform -chdir=envs/${e} validate -no-color"
                     }
                 }

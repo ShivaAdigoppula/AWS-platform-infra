@@ -25,7 +25,7 @@ H 21 * * *''')                                 // every evening around 21:xx Ber
         stage('Destroy dev') {
             steps {
                 sh 'mkdir -p "$TF_PLUGIN_CACHE_DIR"'
-                sh 'terraform -chdir=envs/dev init -input=false -no-color'
+                sh 'terraform -chdir=envs/dev init -input=false -reconfigure -no-color'
                 script {
                     def count = sh(script: 'terraform -chdir=envs/dev state list | wc -l', returnStdout: true).trim()
                     if (count == '0') {

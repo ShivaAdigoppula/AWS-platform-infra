@@ -32,7 +32,7 @@ H 7 * * *''')                                  // every morning around 07:xx Ber
                     def drifted = []
                     for (e in ENVS) {
                         def name = e.replace('/', '-')
-                        sh "terraform -chdir=${e} init -input=false -no-color"
+                        sh "terraform -chdir=${e} init -input=false -reconfigure -no-color"
 
                         // Skip environments that are not deployed (empty state = nothing to compare)
                         def count = sh(script: "terraform -chdir=${e} state list | wc -l", returnStdout: true).trim()
