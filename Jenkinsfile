@@ -41,11 +41,16 @@ pipeline {
             }
         }
 
-        stage('Security scan (Trivy)') {
+                stage('Security scan (Trivy)') {
             steps {
-                // REPORT MODE: lists findings but does not fail (we enforce in Block 15)
-                sh 'trivy config --severity HIGH,CRITICAL --exit-code 0 --format table --output trivy-report.txt .'
-                sh 'cat trivy-report.txt'
+                // GATE MODE. Plan files are skipped: they are build output, not reviewed code.
+                sh '''
+                  trivy config --severity HIGH,CRITICAL --exit-code 1 \
+                    --skip-files "**/tfplan" --skip-version-check \
+                    --format table --output trivy-report.txt . \
+                  || { cat trivy-report.txt; exit 1; }
+                  cat trivy-report.txt
+                '''
             }
             post {
                 always {

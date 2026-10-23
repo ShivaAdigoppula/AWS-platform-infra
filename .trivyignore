@@ -1,0 +1,25 @@
+# ─────────────────────────────────────────────────────────────────────────
+# Accepted security findings for aws-platform-infra.
+# Every entry needs: WHY it is accepted + an expiry date for re-review.
+# Changes to this file are reviewed in PRs like any other code.
+# ─────────────────────────────────────────────────────────────────────────
+
+# EKS public endpoint: no VPN/bastion in this project. Access is IAM-authenticated
+# AND restricted to the Jenkins EIP + admin IP (public_access_cidrs). Prod: private endpoint + VPN.
+AWS-0040 
+
+# EKS secrets envelope encryption with a customer KMS key: skipped because dev is
+# rebuilt nightly (KMS key churn/cost). Default AWS encryption applies. Prod: enable.
+AWS-0039 
+
+# Jenkins security group egress 0.0.0.0/0: needed to reach package repos, GitHub,
+# Docker Hub and AWS APIs. Outbound only; inbound is restricted to admin + GitHub IPs.
+AWS-0104 
+
+# State bucket uses the AWS-managed KMS key (still KMS-encrypted, versioned, private).
+# A customer-managed key adds cost without meaningful benefit for this project.
+AWS-0132 
+# EKS public access allow-list: restricted from 0.0.0.0/0 to exactly two /32s
+# (Jenkins EIP + admin IP) via eks_public_access_cidrs. The check flags ANY public CIDR;
+# eliminating it requires private-only access via VPN/peering. Prod: private endpoint + VPN.
+AWS-0041 exp:2027-01-31

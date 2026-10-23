@@ -14,3 +14,7 @@ cluster_admin_arns = [
 ]
 
 argocd_chart_version = "10.10.5"
+eks_public_access_cidrs = [
+  "18.194.166.29/32", # Jenkins server (Elastic IP)
+  "109.41.112.54/32", # my laptop: update via PR when my IP changes
+]
