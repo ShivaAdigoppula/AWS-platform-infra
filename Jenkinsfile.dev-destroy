@@ -1,12 +1,14 @@
 // Destroys the DEV environment every evening to save money.
 // Hard-coded to envs/dev: it can never touch stage or prod.
+// Step 1 removes Kubernetes-created AWS load balancers first (via Argo CD),
+// otherwise "terraform destroy" fails on the VPC with DependencyViolation.
 
 pipeline {
     agent any
 
     triggers {
         cron('''TZ=Europe/Berlin
-H 21 * * *''')                                 // every evening around 21:xx Berlin time
+H 21 * * *''')
     }
 
     options {
@@ -20,17 +22,18 @@ H 21 * * *''')                                 // every evening around 21:xx Ber
         AWS_REGION          = 'eu-central-1'
         TF_PLUGIN_CACHE_DIR = '/var/lib/jenkins/.terraform.d/plugin-cache'
     }
-    stage('Remove Kubernetes load balancers') {
+
+    stages {
+
+        stage('Remove Kubernetes load balancers') {
             steps {
                 script {
-                    // Is there a dev cluster at all? (exit code 0 = yes)
                     def clusterExists = sh(script: 'aws eks describe-cluster --name dev-eks --region $AWS_REGION > /dev/null 2>&1',
                                            returnStatus: true) == 0
                     if (!clusterExists) {
                         echo 'No dev cluster - nothing to clean up.'
                     } else {
                         sh '''
-                          # Separate kubeconfig, only for this build
                           export KUBECONFIG="$WORKSPACE/kubeconfig-dev"
                           aws eks update-kubeconfig --name dev-eks --region $AWS_REGION --kubeconfig "$KUBECONFIG"
 
@@ -38,6 +41,7 @@ H 21 * * *''')                                 // every evening around 21:xx Ber
                           kubectl delete application root -n argocd --ignore-not-found --wait=true --timeout=5m
 
                           # 2. Wait (max 5 min) until no Service of type LoadBalancer is left
+                          LBS=""
                           for i in $(seq 1 30); do
                             LBS=$(kubectl get svc -A -o jsonpath='{range .items[?(@.spec.type=="LoadBalancer")]}{.metadata.namespace}/{.metadata.name} {end}')
                             [ -z "$LBS" ] && break
@@ -53,7 +57,7 @@ H 21 * * *''')                                 // every evening around 21:xx Ber
                 }
             }
         }
-    stages {
+
         stage('Destroy dev') {
             steps {
                 sh 'mkdir -p "$TF_PLUGIN_CACHE_DIR"'
