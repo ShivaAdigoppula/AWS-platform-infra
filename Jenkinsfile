@@ -44,7 +44,7 @@ pipeline {
         stage('Security scan (Trivy)') {
             steps {
                 // REPORT MODE: lists findings but does not fail (we enforce in Block 15)
-                sh 'trivy config --severity HIGH,CRITICAL --exit-code 0 --format table --output trivy-report.txt .'
+                sh 'trivy config --severity HIGH,CRITICAL --exit-code 1 --format table --output trivy-report.txt .'
                 sh 'cat trivy-report.txt'
             }
             post {

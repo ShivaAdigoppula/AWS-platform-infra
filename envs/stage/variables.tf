@@ -47,3 +47,7 @@ variable "argocd_chart_version" {
   description = "argo-cd Helm chart version for this environment"
   type        = string
 }
+variable "eks_public_access_cidrs" {
+  description = "IPs allowed to reach the EKS API from the internet: Jenkins EIP + admin laptop"
+  type        = list(string)
+}

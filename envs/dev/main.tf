@@ -45,6 +45,7 @@ module "eks" {
   node_max_size        = var.node_max_size
   admin_principal_arns = var.cluster_admin_arns
   depends_on           = [module.eks_cluster_role, module.eks_node_role]
+  public_access_cidrs  = var.eks_public_access_cidrs
 }
 module "argocd" {
   source = "../../modules/argocd"

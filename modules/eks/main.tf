@@ -1,8 +1,21 @@
+# We create the log group OURSELVES, before the cluster.
+# Otherwise EKS creates it automatically: outside Terraform, with "never expire" retention,
+# and it would stay behind (and keep costing) after every nightly destroy.
+resource "aws_cloudwatch_log_group" "cluster" {
+  name              = "/aws/eks/${var.name}/cluster" # the exact name EKS writes to
+  retention_in_days = 7                              # logs are deleted after 7 days
+}
 resource "aws_eks_cluster" "this" {
   name     = var.name
   version  = var.kubernetes_version
   role_arn = var.cluster_role_arn
+  # Control-plane logs → CloudWatch:
+  #   api           = every request to the Kubernetes API
+  #   audit         = WHO did WHAT, WHEN (the compliance log)
+  #   authenticator = which IAM identity logged in
+  enabled_cluster_log_types = ["api", "audit", "authenticator"]
 
+  depends_on = [aws_cloudwatch_log_group.cluster] # the log group must exist first
   vpc_config {
     subnet_ids              = var.subnet_ids
     endpoint_private_access = true
