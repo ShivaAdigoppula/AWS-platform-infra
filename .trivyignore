@@ -19,3 +19,7 @@ AWS-0104
 # State bucket uses the AWS-managed KMS key (still KMS-encrypted, versioned, private).
 # A customer-managed key adds cost without meaningful benefit for this project.
 AWS-0132 
+# EKS public access allow-list: restricted from 0.0.0.0/0 to exactly two /32s
+# (Jenkins EIP + admin IP) via eks_public_access_cidrs. The check flags ANY public CIDR;
+# eliminating it requires private-only access via VPN/peering. Prod: private endpoint + VPN.
+AWS-0041 exp:2027-01-31
