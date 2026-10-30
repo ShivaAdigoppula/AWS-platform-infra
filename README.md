@@ -12,17 +12,7 @@ stage/prod only after **manual approval**. Applications are delivered via **GitO
 Jenkins builds, scans and pushes images, then commits the new version to a GitOps repo
 that **Argo CD** syncs into the cluster. **No static AWS access keys exist anywhere.**
 
-## Results
 
-| Metric | Value |
-|---|---|
-| Full environment (VPC, IAM, EKS, Argo CD) from a merged PR | **~11 min** |
-| Empty → app reachable via public load balancer, zero manual steps | **___ min** |
-| Lead time: app code merge → new pods running | **___ min** |
-| Rollback (`git revert` in GitOps repo) → previous version live | **___ min** |
-| Self-heal of a manual cluster change (Argo CD) | **___ s** |
-| Vulnerable dependency (outdated `urllib3`) | **blocked at PR** by the Trivy image gate |
-| dev cost, running / with nightly destroy | ≈ $7/day / ≈ $1.20/day |
 
 ## Architecture
 
